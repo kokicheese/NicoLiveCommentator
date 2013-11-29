@@ -2,6 +2,7 @@ node_modules/
 src/dev/key.pem
 src/dev/tmp/
 
+src/dev/manifest.json
 src/dev/**/*.js
 src/dev/**/*.css
 src/dev/**/*.html
