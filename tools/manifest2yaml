@@ -1,0 +1,10 @@
+#!/usr/bin/env coffee
+require('better-require')()
+
+fs = require 'fs'
+yaml = require 'js-yaml'
+
+manifest = require '../src/dev/manifest.json'
+
+fs.writeFile './src/manifest.yaml', yaml.dump(manifest), (err)->
+  throw err if err

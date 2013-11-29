@@ -1,0 +1,18 @@
+app: 
+  background: 
+    scripts: 
+      - background.js
+permissions: 
+  - "*://*.nicovideo.jp/*"
+  - socket: 
+      - "tcp-connect"
+      - "tcp-listen"
+  - storage
+  - unlimitedStorage
+icons: 
+  "48": icons/48_48.png
+  "128": icons/128_128.png
+name: NicoLiveCommentator
+description: "NLC is \"ニコニコ生放送\" comment viewer for ChromeApps and OSS."
+version: "0.0.0"
+manifest_version: 2
