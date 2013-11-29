@@ -174,10 +174,11 @@ class Director
           dir = path.join process.cwd(), dir
           new Watcher dir, (e, fn)->
             if 'change' is e
-              console.log e, fn
               exec 'cake build', (err, stdout, stderr)->
                 throw err if err
-                console.log stdout
+                exec "git diff #{fn}", (err, stdout, stderr)->
+                  throw err if err
+                  process.stdout.write stdout
       else
         console.log 'build done'
     
