@@ -11,8 +11,12 @@ In preparation.
 
 ##How to use.
 ---
-In preparation.
+$ cake
+Cakefile defines the following tasks:
 
+cake build                # Project build.
+
+  -w, --watch        Crate daemon process.
 
 ##Author
 ---
