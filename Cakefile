@@ -3,34 +3,17 @@
 
 require('better-require')()
 
-_ = require 'underscore'
-fs = require 'fs'
-path = require 'path'
-Director = require './lib/cake-director.coffee'
-
-class NlcDirector extends Director
-  constructor: ->
-    super
-    @cmdSet
-      manifest: @manifest.bind(@)
-
-  manifest: (data)->
-    @tasks.push (next)=>
-      _path = path.join @out, 'manifest.json'
-      data = JSON.stringify data
-      fs.writeFile _path, data, (err)->
-        next(err)
-
+NlcDirector = require('./lib/nlc_director.coffee')
 director = new NlcDirector
 
 director.out = './src/dev/'
 
 build './src/background/'
 
-#build './src/app/'
+build './src/app/'
 
-#build './src/init/'
+build './src/init/'
 
 build './src/lib/utf.coffee'
 
-#manifest require('./src/manifest.yml')
+manifest require('./src/manifest.yml')

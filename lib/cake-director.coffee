@@ -63,6 +63,7 @@ class Director
       build: @build.bind(@)
       task: @task.bind(@)
       option: @option.bind(@)
+      _: _
     @setOptions()
     @setTask()
     #@workers = workers
@@ -159,126 +160,6 @@ class Director
       child.send 'build'
       workers.push child
     
-        
-         
-  ###
-  build: (srcPath, options, callback)->
-    err = new Error('undefine srcPath.') unless srcPath
-    [callback, options] = [options, {}] unless callback
-    self = @
-    ftypeError = new Error "Not file type. must be File or Directory"
-    tasks.push (next)->
-      #console.log 'build.task'
-      outDir = options.out || self.out
-      solo = (_path, cb)->
-        f = path.basename _path
-        fspt = path.basename(f).split('.')
-        for name, type of Compiler
-          if ".#{fspt[1]}" is type.extname
-            if srcPath.indexOf(f) < 0
-              base = path.join srcPath, f
-            else
-              base = srcPath
-            outf = path.join outDir, fspt[0] + type.out_extname
-            buildTargets.push cmp = new type
-              src: base
-              target: outf
-            addWatchTarget _path, cmp
-            cb() if cb
-      tplC = (_path)->
-      readdir = (_path, cb)->
-        fs.readdir _path, (err, fls)->
-          cb err, fls
-      fs.stat srcPath, (err, stats)->
-        next err if err?
-        if stats.isFile()
-          solo srcPath, ->
-            next()
-        else if stats.isDirectory()
-          readdir srcPath, (err, fls)->
-            tmp.srcDir =
-              tasks: []
-              dir: srcPath
-              outPath: []
-              paths: []
-              i: 0
-              j: 0
-            {tasks, i, paths, outPath, j} = tmp.srcDir
-            out = path.basename(srcPath)
-            for f in fls
-              paths.push path.join srcPath, f
-              tasks.push (next)->
-                _path = paths[i]
-                ++i
-                fs.stat _path, (err, st)->
-                  next err if err
-                  if st.isFile()
-                    solo _path, ->
-                      next()
-                  else if st.isDirectory()
-                    b = path.basename _path
-                    for name of self.Compilers
-                      if b is name
-                        readdir _path, (err, fls)->
-                          next err if err
-                          _index = null
-                          fls = _(fls).filter (f)->
-                            if f.indexOf('index') < 0
-                              f
-                            else
-                              _index = f
-                              return
-                          fls.push _index if _index
-                          fls = _(fls).map (f)-> path.join srcPath, b, f
-                          c = self.Compilers[b]
-                          addWatchTarget path.join(srcPath, b), c
-                          outPath = path.join outDir, out + c.out_extname
-                          next null, new c
-                            src: fls
-                            target: outPath
-                  else
-                    next()
-            wait tasks, (err, res)->
-              next err if err
-              res = _(res).filter (r)->
-                r
-              if res.length > 0
-                for b in res
-                  self.buildTargets.push b
-              next()
-        else
-          next ftypeError
-        
-                    
-  buildRun: (options, res)->
-    tmp.build =
-      tasks: []
-      compilers: []
-      i: 0
-    { tasks, compilers, i} = tmp.build
-    for b in @buildTargets
-      compilers.push b
-      tasks.push (next)->
-        b = compilers[i]
-        ++i
-        b.build ->
-          next()
-    wait tasks, ->
-      if options.watch?
-        options.watch = false
-        for dir, i in watchTargets
-          dir = path.join process.cwd(), dir
-          new Watcher dir, (e, fn)->
-            if 'change' is e
-              exec 'cake build', (err, stdout, stderr)->
-                throw err if err
-                exec "git diff #{fn}", (err, stdout, stderr)->
-                  throw err if err
-                  process.stdout.write stdout
-      else
-        console.log 'build done'
-  ###
-      
   task: (name, description, action) ->
     [action, desctiption] = [description, action] unless action
     self = @
