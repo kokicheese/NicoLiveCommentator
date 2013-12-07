@@ -60,6 +60,7 @@ class Director
     @switches = switches
     @buildTargets = buildTargets
     @cmdSet
+      mv: @mv.bind(@)
       build: @build.bind(@)
       task: @task.bind(@)
       option: @option.bind(@)
@@ -91,50 +92,57 @@ class Director
     buildTasks.push (next)->
       fs.stat srcPath, (err, stats)->
         next(err) if err
-        check_compiler = (fname)->
-          for n, c of self.Compilers
-            if fname is n
-              return c
-        if stats.isDirectory()
-          fs.readdir srcPath, (err, fls)->
-            next(err) if err
-            _task = []
-            _(fls).each (fname)->
-              _path = path.join(srcPath, fname)
-              _task.push (next)->
-                compiler = check_compiler(fname)
-                fs.readdir _path, (err, fls)->
-                  next(err) if err
-                  index = null
-                  fls = _(fls).filter (f)->
-                    if f.indexOf('index') < 0
-                      f
-                    else
-                      index = f
-                      return
-                  fls.push index if index
-                  srcs = _(fls).map (f)->
-                    path.join(_path, f)
-                  next null, new compiler
-                    src: srcs
-                    target: path.join(outDir, path.basename(srcPath) + compiler.out_extname)
-
-                    
-            wait _task, (err, res)->
-              if err?.length?
-                next(err) if err.length > 0
-              next null, res
-        else if stats.isFile()
+        solo = (srcPath, next)=>
           #check extname = ->
           comp = do ->
-            for n, c of self.Compilers
-              if path.extname(srcPath) is c.extname
-                return c
-          
+          for n, c of self.Compilers
+            if path.extname(srcPath) is c.extname
+              return c
           next null, [new comp
             src: srcPath
             target: path.join(outDir, path.basename(srcPath, comp.extname) + comp.out_extname)
             ]
+        check_compiler = (fname)->
+          for n, c of self.Compilers
+            if fname is n or fname is c.extname.replace('.', '')
+              return c
+        if stats.isDirectory()
+          fs.readdir srcPath, (err, fls)->
+            next(err) if err
+            top_fls = fls
+            _tasks = []
+            _(fls).each (fname)->
+              _path = path.join(srcPath, fname)
+              _tasks.push (next)->
+                compiler = check_compiler(fname)
+                fs.readdir _path, (err, fls)->
+                  unless compiler
+                    c = check_compiler path.extname(_path).replace('.', '')
+                    next null, new c
+                      src: _path
+                      target: path.join outDir, path.basename(_path).replace(c.extname, c.out_extname)
+                    return
+                  next(err) if err
+                  index = null
+                  fls = _(fls).filter (f)->
+                    if f.indexOf('index') < 0
+                      return f
+                    else
+                      index = f
+                      return
+                  fls.push index if index
+                  
+                  srcs = _(fls).map _p = (f)->
+                    path.join(_path, f)
+                  next null, new compiler
+                    src: srcs
+                    target: path.join(outDir, path.basename(srcPath) + compiler.out_extname)
+            wait _tasks, (err, res)->
+              if err?.length?
+                next(err) if err.length > 0
+              next null, res
+        else if stats.isFile()
+          solo srcPath, next.bind(@)
         else
           next(Director.Error.TypeError)
 
@@ -144,22 +152,26 @@ class Director
       _(res).each (b)->
         _(b).each (b)->
           bs.push b
+      bs = _.compact(bs)
       _(bs).each (b)->
         buildTargets.push b
         b.build ->
-          cb = ->
-            spawn 'git', ['diff', @target], { stdio: [0, 1, 2] }
-          @watch(cb) if options.watch?
-        
+          @watch() if options.watch?
+
+  mv: (src, target)->
+    throw new Error('usage: source, target') unless src or target
+    @buildTasks.push (next)=>
+      #console.log src. target
+      next()
   
-  workerStart: ->
-    _(@workerNum).times (id)->
-      child = fork __dirname + '/worker.coffee',  [id]
-      child.on 'message', (m)->
-        console.log m.log if m.log?
-      child.send 'build'
-      workers.push child
-    
+  git:
+    diff: (file, cb)->
+      if cb
+        exec "git diff #{file}", (err, stout, sterr)->
+          cb err if err
+          cb sterr if sterr.length > 0
+          cb null, stout
+                          
   task: (name, description, action) ->
     [action, desctiption] = [description, action] unless action
     self = @

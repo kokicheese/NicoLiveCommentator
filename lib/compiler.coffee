@@ -71,7 +71,9 @@ class Compiler
     unless @watch_ps?
       _s = _(@src)
       i = 0
-      callback = (e, f)=>
+      diff_cache = ""
+      callback = (e, fname)=>
+        basefile = fname
         if 'change' is e
           build = =>
             diff = (f, cb)=>
@@ -82,21 +84,25 @@ class Compiler
             b = =>
               @build =>
                 console.log @target
-                cb.call(@, e, f) if cb?
+                cb.call(@, e, fname) if cb?
             done = (err, res)=>
-              i = 0
-              _(res).each (j)->
-                i = i + j
-              b() if i > 0
+              _i = 0
+              cache = ""
+              _(res).each (_j)->
+                _i += _j.toString().length
+                cache += _j.toString()
+              unless cache is diff_cache
+                diff_cache = _.clone(cache)
+                b() if _i > 0
             if _s.isArray()
               task = []
-              _s.each (f)->
+              _s.each (f)=>
                 task.push (next)=>
                   diff f, (err, out)=>
-                    next err, out.length
+                    next err, out
               async.parallel task, done
             else
-              diff f, (err, out)=>
+              diff fname, (err, out)=>
                 done err, [out.length]
           ###
           # 2013/12/7 kokicheese
@@ -104,9 +110,12 @@ class Compiler
           # node v0.11.2
           # Mac OS X 64 bit Mavericks
           ###
-          if ++i > 2
+          #console.log ++i
+          if ++i is 1
             i = 0
             build()
+          else
+            i = 0
       @watch_ps = []
       if _s.isArray()
         _s.each (f)=>
