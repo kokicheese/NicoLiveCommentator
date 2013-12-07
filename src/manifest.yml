@@ -1,6 +1,7 @@
 app: 
   background: 
-    scripts: 
+    scripts:
+      - jquery-2.0.3.min.js
       - background.js
 permissions: 
   - "*://*.nicovideo.jp/*"

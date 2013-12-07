@@ -11,11 +11,8 @@ Director = require './lib/cake-director.coffee'
 class NlcDirector extends Director
   constructor: ->
     super
-    self = @
-    _([
-      'manifest'
-      ]).each (cmd)=>
-        root[cmd] = @[cmd].bind(@)
+    @cmdSet
+      manifest: @manifest.bind(@)
 
   manifest: (data)->
     @tasks.push (next)=>
@@ -30,10 +27,10 @@ director.out = './src/dev/'
 
 build './src/background/'
 
-build './src/app/'
+#build './src/app/'
 
-build './src/init/'
+#build './src/init/'
 
 build './src/lib/utf.coffee'
 
-manifest require('./src/manifest.yaml')
+#manifest require('./src/manifest.yml')

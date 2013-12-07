@@ -1,13 +1,15 @@
 #
 
 defaultOptions =
-  src: null # Source path.
-  code: null # SourceCode this is pre code.
+  src: null    # Source path.
+  code: null   # SourceCode this is pre code.
   target: null # Output path.
 
+{exec, spawn} = require 'child_process'
 fs = require 'fs'
 path = require 'path'
 _ = require 'underscore'
+async = require 'async'
 
 
 class Compiler
@@ -59,17 +61,65 @@ class Compiler
   outCode: (cb = (->))->
     self = @
     if !!(outPath = @target) and @code?
-      fs.writeFile outPath, @code, cb
+      fs.writeFile outPath, @code, cb.bind(@)
 
   compile: (cb)->
     @code = @srcCode
     cb.call @ if cb?
-  
+
+  watch: (cb)->
+    unless @watch_ps?
+      _s = _(@src)
+      i = 0
+      callback = (e, f)=>
+        if 'change' is e
+          build = =>
+            diff = (f, cb)=>
+              if cb?
+                exec "git diff #{f}", (err, stout, sterr)->
+                  cb(err) if err
+                  cb null, stout, sterr
+            b = =>
+              @build =>
+                console.log @target
+                cb.call(@, e, f) if cb?
+            done = (err, res)=>
+              i = 0
+              _(res).each (j)->
+                i = i + j
+              b() if i > 0
+            if _s.isArray()
+              task = []
+              _s.each (f)->
+                task.push (next)=>
+                  diff f, (err, out)=>
+                    next err, out.length
+              async.parallel task, done
+            else
+              diff f, (err, out)=>
+                done err, [out.length]
+          ###
+          # 2013/12/7 kokicheese
+          # 原因不明　何故かfs.watchが３回実行される対策
+          # node v0.11.2
+          # Mac OS X 64 bit Mavericks
+          ###
+          if ++i > 2
+            i = 0
+            build()
+      @watch_ps = []
+      if _s.isArray()
+        _s.each (f)=>
+          @watch_ps.push fs.watch f, callback
+      else
+        @watch_ps.push fs.watch @src, callback
+
+    
   build: (cb = (->))->
     self = @
     @srcUnpack (err)->
       if err
-        console.log err
+        throw err
         #cb.call self, err if cb?
       else
         @compile (err)->

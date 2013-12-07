@@ -3,11 +3,17 @@ class Background
 
   class _Background
     constructor: ()->
-      @manager = Manager
+      
+    onLauncher: ->
+      @createAppWindow()
       
     createAppWindow: (options)->
-      chrome.runtime
+      unless @window
+        @window = true
+        chrome.app.window.create 'init.html', (@window)=>
+          console.log @window
+
       
   instance = null
-  getInstance: -> instance ?= new _Background
+  @getInstance: -> instance ?= new _Background
   

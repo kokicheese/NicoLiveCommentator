@@ -6,5 +6,5 @@ yaml = require 'js-yaml'
 
 manifest = require '../src/dev/manifest.json'
 
-fs.writeFile './src/manifest.yaml', yaml.dump(manifest), (err)->
+fs.writeFile './src/manifest.yml', yaml.dump(manifest), (err)->
   throw err if err
